@@ -1,0 +1,88 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description>Pushes RMSNG Docker Image (generated in RMSNG-master-nightly job) to Staging ECR&#xd;
+&lt;br&gt;Staging ECR URL: 579292207088.dkr.ecr.us-east-1.amazonaws.com/&amp;lt;image-name&amp;gt;&#xd;
+</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <jenkins.model.BuildDiscarderProperty>
+      <strategy class="hudson.tasks.LogRotator">
+        <daysToKeep>-1</daysToKeep>
+        <numToKeep>15</numToKeep>
+        <artifactDaysToKeep>-1</artifactDaysToKeep>
+        <artifactNumToKeep>-1</artifactNumToKeep>
+      </strategy>
+    </jenkins.model.BuildDiscarderProperty>
+    <hudson.plugins.disk__usage.DiskUsageProperty plugin="disk-usage@0.28"/>
+    <com.chikli.hudson.plugin.naginator.NaginatorOptOutProperty plugin="naginator@1.17.2">
+      <optOut>false</optOut>
+    </com.chikli.hudson.plugin.naginator.NaginatorOptOutProperty>
+  </properties>
+  <scm class="hudson.scm.NullSCM"/>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers/>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>AWS_ECR_URL=&quot;579292207088.dkr.ecr.us-east-1.amazonaws.com&quot;
+
+# Get AWS ECR Credentials for CLI access to ECR
+tmp_AWS_ECR_Creds=$(mktemp)
+aws ecr get-login --no-include-email &gt; ${tmp_AWS_ECR_Creds}
+bash ${tmp_AWS_ECR_Creds}
+rm -f ${tmp_AWS_ECR_Creds}
+
+for component in skydrm-db skydrm-rms skydrm-router skydrm-viewer
+do
+    docker image ls -a --format &quot;{{.Tag}}&quot; ${component} | grep -v LATEST | sort -b -t. -k1,1n -k2,2n -k3,3n | tail -1 | while read tagname
+    do
+        docker tag ${component}:${tagname} &quot;${AWS_ECR_URL}&quot;/${component}:${tagname}
+        docker push &quot;${AWS_ECR_URL}&quot;/${component}:${tagname}
+        docker image rm -f &quot;${AWS_ECR_URL}&quot;/${component}:${tagname}
+    done
+done</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers>
+    <hudson.plugins.emailext.ExtendedEmailPublisher plugin="email-ext@2.62">
+      <recipientList>$DEFAULT_RECIPIENTS, sc-scrumteam@nextlabs.com</recipientList>
+      <configuredTriggers>
+        <hudson.plugins.emailext.plugins.trigger.AlwaysTrigger>
+          <email>
+            <subject>$PROJECT_DEFAULT_SUBJECT</subject>
+            <body>$PROJECT_DEFAULT_CONTENT</body>
+            <recipientProviders>
+              <hudson.plugins.emailext.plugins.recipients.ListRecipientProvider/>
+            </recipientProviders>
+            <attachmentsPattern></attachmentsPattern>
+            <attachBuildLog>false</attachBuildLog>
+            <compressBuildLog>false</compressBuildLog>
+            <replyTo>$PROJECT_DEFAULT_REPLYTO</replyTo>
+            <contentType>project</contentType>
+          </email>
+        </hudson.plugins.emailext.plugins.trigger.AlwaysTrigger>
+      </configuredTriggers>
+      <contentType>default</contentType>
+      <defaultSubject>$DEFAULT_SUBJECT</defaultSubject>
+      <defaultContent>$BUILD_STATUS: $PROJECT_NAME - Build #$BUILD_NUMBER:
+
+View the build output at: $BUILD_URL/console</defaultContent>
+      <attachmentsPattern></attachmentsPattern>
+      <presendScript>$DEFAULT_PRESEND_SCRIPT</presendScript>
+      <postsendScript>$DEFAULT_POSTSEND_SCRIPT</postsendScript>
+      <attachBuildLog>false</attachBuildLog>
+      <compressBuildLog>false</compressBuildLog>
+      <replyTo>$DEFAULT_REPLYTO</replyTo>
+      <from></from>
+      <saveOutput>false</saveOutput>
+      <disabled>false</disabled>
+    </hudson.plugins.emailext.ExtendedEmailPublisher>
+  </publishers>
+  <buildWrappers>
+    <hudson.plugins.timestamper.TimestamperBuildWrapper plugin="timestamper@1.8.10"/>
+  </buildWrappers>
+</project>

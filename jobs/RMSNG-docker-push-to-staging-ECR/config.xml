@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@2.17">
+  <actions/>
+  <description>Test Docker-push to:&lt;br&gt;&#xd;
+&lt;b&gt;Repository ARN arn: &lt;/b&gt;aws:ecr:us-east-1:579292207088:repository/skydrm-db|skydrm-rms|skydrm-router|skydrm-viewer&lt;br&gt;&#xd;
+&lt;b&gt;Repository URI: &lt;/b&gt;579292207088.dkr.ecr.us-east-1.amazonaws.com</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.security.AuthorizationMatrixProperty>
+      <inheritanceStrategy class="org.jenkinsci.plugins.matrixauth.inheritance.NonInheritingStrategy"/>
+      <permission>com.cloudbees.plugins.credentials.CredentialsProvider.Create:hudson-admin</permission>
+      <permission>com.cloudbees.plugins.credentials.CredentialsProvider.Delete:hudson-admin</permission>
+      <permission>com.cloudbees.plugins.credentials.CredentialsProvider.ManageDomains:hudson-admin</permission>
+      <permission>com.cloudbees.plugins.credentials.CredentialsProvider.Update:hudson-admin</permission>
+      <permission>com.cloudbees.plugins.credentials.CredentialsProvider.View:hudson-admin</permission>
+      <permission>hudson.model.Item.Build:hudson-admin</permission>
+      <permission>hudson.model.Item.Cancel:hudson-admin</permission>
+      <permission>hudson.model.Item.Configure:hudson-admin</permission>
+      <permission>hudson.model.Item.Delete:hudson-admin</permission>
+      <permission>hudson.model.Item.Discover:hudson-admin</permission>
+      <permission>hudson.model.Item.ExtendedRead:hudson-admin</permission>
+      <permission>hudson.model.Item.Move:hudson-admin</permission>
+      <permission>hudson.model.Item.Read:hudson-admin</permission>
+      <permission>hudson.model.Item.Workspace:hudson-admin</permission>
+      <permission>hudson.model.Run.Delete:hudson-admin</permission>
+      <permission>hudson.model.Run.Replay:hudson-admin</permission>
+      <permission>hudson.model.Run.Update:hudson-admin</permission>
+      <permission>hudson.scm.SCM.Tag:hudson-admin</permission>
+    </hudson.security.AuthorizationMatrixProperty>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>BUILD_VERSION</name>
+          <description>Should be of format: 10.6.0084</description>
+          <defaultValue>10.6.0084</defaultValue>
+        </hudson.model.StringParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+    <EnvInjectJobProperty plugin="envinject@2.1.5">
+      <info>
+        <propertiesContent>ENGSERVICES_REGISTRY_CREDENTIAL_ID=ecr:us-east-1:devops-automation-credentials</propertiesContent>
+        <secureGroovyScript plugin="script-security@1.40">
+          <script></script>
+          <sandbox>false</sandbox>
+        </secureGroovyScript>
+        <loadFilesFromMaster>false</loadFilesFromMaster>
+      </info>
+      <on>true</on>
+      <keepJenkinsSystemVariables>true</keepJenkinsSystemVariables>
+      <keepBuildVariables>true</keepBuildVariables>
+      <overrideBuildParameters>false</overrideBuildParameters>
+    </EnvInjectJobProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.44">
+    <script>node {
+
+  String imageName_db = &apos;skydrm-db&apos;
+  String imageName_rms = &apos;skydrm-rms&apos;
+  String imageName_router = &apos;skydrm-router&apos;
+  String imageName_viewer = &apos;skydrm-viewer&apos;
+  String version_to_push = env.BUILD_VERSION
+
+  stage &apos;Docker push to Staging ECR&apos;
+  docker.withRegistry(&apos;https://579292207088.dkr.ecr.us-east-1.amazonaws.com&apos;, &quot;${env.ENGSERVICES_REGISTRY_CREDENTIAL_ID}&quot;) {
+    docker.image(&quot;${imageName_db}:${version_to_push}&quot;).push()
+    docker.image(&quot;${imageName_rms}:${version_to_push}&quot;).push()
+    docker.image(&quot;${imageName_router}:${version_to_push}&quot;).push()
+    docker.image(&quot;${imageName_viewer}:${version_to_push}&quot;).push()
+  }
+}</script>
+    <sandbox>true</sandbox>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>

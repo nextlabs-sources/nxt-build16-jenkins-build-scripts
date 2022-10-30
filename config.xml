@@ -1,0 +1,216 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<hudson>
+  <disabledAdministrativeMonitors/>
+  <version>2.150.1</version>
+  <installStateName>RESTART</installStateName>
+  <numExecutors>2</numExecutors>
+  <mode>NORMAL</mode>
+  <useSecurity>true</useSecurity>
+  <authorizationStrategy class="hudson.security.ProjectMatrixAuthorizationStrategy">
+    <permission>com.cloudbees.plugins.credentials.CredentialsProvider.Create:hudson-admin</permission>
+    <permission>com.cloudbees.plugins.credentials.CredentialsProvider.Delete:hudson-admin</permission>
+    <permission>com.cloudbees.plugins.credentials.CredentialsProvider.ManageDomains:hudson-admin</permission>
+    <permission>com.cloudbees.plugins.credentials.CredentialsProvider.Update:hudson-admin</permission>
+    <permission>com.cloudbees.plugins.credentials.CredentialsProvider.View:hudson-admin</permission>
+    <permission>hudson.model.Computer.Build:hudson-admin</permission>
+    <permission>hudson.model.Computer.Configure:hudson-admin</permission>
+    <permission>hudson.model.Computer.Connect:hudson-admin</permission>
+    <permission>hudson.model.Computer.Create:hudson-admin</permission>
+    <permission>hudson.model.Computer.Delete:hudson-admin</permission>
+    <permission>hudson.model.Computer.Disconnect:hudson-admin</permission>
+    <permission>hudson.model.Hudson.Administer:hudson-admin</permission>
+    <permission>hudson.model.Hudson.Read:build-op</permission>
+    <permission>hudson.model.Hudson.Read:hudson-admin</permission>
+    <permission>hudson.model.Hudson.Read:hudson-pcv</permission>
+    <permission>hudson.model.Hudson.Read:hudson-release</permission>
+    <permission>hudson.model.Hudson.Read:mxu</permission>
+    <permission>hudson.model.Item.Build:hudson-admin</permission>
+    <permission>hudson.model.Item.Build:hudson-pcv</permission>
+    <permission>hudson.model.Item.Build:hudson-release</permission>
+    <permission>hudson.model.Item.Cancel:hudson-admin</permission>
+    <permission>hudson.model.Item.Cancel:hudson-pcv</permission>
+    <permission>hudson.model.Item.Cancel:hudson-release</permission>
+    <permission>hudson.model.Item.Configure:hudson-admin</permission>
+    <permission>hudson.model.Item.Create:hudson-admin</permission>
+    <permission>hudson.model.Item.Delete:hudson-admin</permission>
+    <permission>hudson.model.Item.Discover:build-op</permission>
+    <permission>hudson.model.Item.Discover:hudson-admin</permission>
+    <permission>hudson.model.Item.Discover:hudson-pcv</permission>
+    <permission>hudson.model.Item.Discover:hudson-release</permission>
+    <permission>hudson.model.Item.Read:build-op</permission>
+    <permission>hudson.model.Item.Read:hudson-admin</permission>
+    <permission>hudson.model.Item.Read:hudson-pcv</permission>
+    <permission>hudson.model.Item.Read:hudson-release</permission>
+    <permission>hudson.model.Item.Workspace:hudson-admin</permission>
+    <permission>hudson.model.Item.Workspace:hudson-pcv</permission>
+    <permission>hudson.model.Item.Workspace:hudson-release</permission>
+    <permission>hudson.model.Run.Delete:hudson-admin</permission>
+    <permission>hudson.model.Run.Update:hudson-admin</permission>
+    <permission>hudson.model.View.Configure:hudson-admin</permission>
+    <permission>hudson.model.View.Create:hudson-admin</permission>
+    <permission>hudson.model.View.Delete:hudson-admin</permission>
+    <permission>hudson.model.View.Read:build-op</permission>
+    <permission>hudson.model.View.Read:hudson-admin</permission>
+    <permission>hudson.model.View.Read:hudson-pcv</permission>
+    <permission>hudson.model.View.Read:hudson-release</permission>
+    <permission>hudson.scm.SCM.Tag:hudson-admin</permission>
+  </authorizationStrategy>
+  <securityRealm class="hudson.plugins.active_directory.ActiveDirectorySecurityRealm" plugin="active-directory@2.10">
+    <domains>
+      <hudson.plugins.active__directory.ActiveDirectoryDomain>
+        <name>nextlabs.com</name>
+        <servers>nxt-dc06.nextlabs.com:3268</servers>
+        <site>SMDC</site>
+        <bindName>CN=build operator,OU=service users,OU=Nextlabs.com,DC=nextlabs,DC=com</bindName>
+        <bindPassword>{AQAAABAAAAAQFWzgdSxjFbSBdEs3+tAyyRgk8N+rYoXc1YfTiSYCPpM=}</bindPassword>
+      </hudson.plugins.active__directory.ActiveDirectoryDomain>
+    </domains>
+    <startTls>true</startTls>
+    <groupLookupStrategy>AUTO</groupLookupStrategy>
+    <removeIrrelevantGroups>false</removeIrrelevantGroups>
+    <tlsConfiguration>TRUST_ALL_CERTIFICATES</tlsConfiguration>
+  </securityRealm>
+  <disableRememberMe>false</disableRememberMe>
+  <projectNamingStrategy class="jenkins.model.ProjectNamingStrategy$DefaultProjectNamingStrategy"/>
+  <workspaceDir>${JENKINS_HOME}/workspace/${ITEM_FULLNAME}</workspaceDir>
+  <buildsDir>${ITEM_ROOTDIR}/builds</buildsDir>
+  <systemMessage>Jenkins server running on NXT-BUILD16</systemMessage>
+  <markupFormatter class="hudson.markup.RawHtmlMarkupFormatter" plugin="antisamy-markup-formatter@1.5">
+    <disableSyntaxHighlighting>false</disableSyntaxHighlighting>
+  </markupFormatter>
+  <jdks/>
+  <viewsTabBar class="hudson.views.DefaultViewsTabBar"/>
+  <myViewsTabBar class="hudson.views.DefaultMyViewsTabBar"/>
+  <clouds/>
+  <quietPeriod>5</quietPeriod>
+  <scmCheckoutRetryCount>0</scmCheckoutRetryCount>
+  <views>
+    <hudson.model.AllView>
+      <owner class="hudson" reference="../../.."/>
+      <name>all</name>
+      <filterExecutors>false</filterExecutors>
+      <filterQueue>false</filterQueue>
+      <properties class="hudson.model.View$PropertyList"/>
+    </hudson.model.AllView>
+    <listView>
+      <owner class="hudson" reference="../../.."/>
+      <name>TeamcenterDCE</name>
+      <filterExecutors>false</filterExecutors>
+      <filterQueue>false</filterQueue>
+      <properties class="hudson.model.View$PropertyList"/>
+      <jobNames>
+        <comparator class="hudson.util.CaseInsensitiveComparator"/>
+        <string>pcv_DCE_3.6_NxlAutoProtect</string>
+        <string>pcv_DCE_4.0_NxlAutoProtect</string>
+        <string>pcv_DCE_4.5_NxlAutoProtect</string>
+        <string>pcv_DCE_4.5_unicode_NxlAutoProtect</string>
+        <string>pcv_TeamCenter_DCE3.0_NxlAutoProtect</string>
+        <string>release_DCE_3.6_NxlAutoProtect</string>
+        <string>release_DCE_4.0_NxlAutoProtect</string>
+        <string>release_DCE_4.1_NxlAutoProtect</string>
+      </jobNames>
+      <jobFilters/>
+      <columns>
+        <hudson.views.StatusColumn/>
+        <hudson.views.WeatherColumn/>
+        <hudson.views.BuildButtonColumn/>
+        <hudson.views.JobColumn/>
+        <hudson.plugins.git.GitBranchSpecifierColumn plugin="git@3.9.1"/>
+        <hudson.views.LastSuccessColumn/>
+        <hudson.views.LastFailureColumn/>
+        <hudson.views.LastDurationColumn/>
+        <org.jenkins.plugins.builton.BuiltOnColumn plugin="built-on-column@1.1"/>
+      </columns>
+      <recurse>false</recurse>
+    </listView>
+    <listView>
+      <owner class="hudson" reference="../../.."/>
+      <name>misc</name>
+      <filterExecutors>false</filterExecutors>
+      <filterQueue>false</filterQueue>
+      <properties class="hudson.model.View$PropertyList"/>
+      <jobNames>
+        <comparator class="hudson.util.CaseInsensitiveComparator"/>
+        <string>check_boda_dirs</string>
+        <string>RMSNG_generate_metrics</string>
+        <string>source_external</string>
+        <string>source_external_to_saba</string>
+        <string>source_git_external</string>
+        <string>source_git_external_to_saba</string>
+        <string>source_main_external</string>
+        <string>source_main_external_to_saba</string>
+        <string>test-docker-push</string>
+        <string>test_RMSNG_Sonar</string>
+        <string>testemail</string>
+      </jobNames>
+      <jobFilters/>
+      <columns>
+        <hudson.views.StatusColumn/>
+        <hudson.views.WeatherColumn/>
+        <hudson.views.JobColumn/>
+        <hudson.views.LastSuccessColumn/>
+        <hudson.views.LastFailureColumn/>
+        <hudson.views.LastDurationColumn/>
+        <hudson.views.BuildButtonColumn/>
+        <org.jenkins.plugins.builton.BuiltOnColumn plugin="built-on-column@1.1"/>
+      </columns>
+      <recurse>false</recurse>
+    </listView>
+    <listView>
+      <owner class="hudson" reference="../../.."/>
+      <name>RMSNG</name>
+      <filterExecutors>false</filterExecutors>
+      <filterQueue>false</filterQueue>
+      <properties class="hudson.model.View$PropertyList"/>
+      <jobNames>
+        <comparator class="hudson.util.CaseInsensitiveComparator"/>
+        <string>RMSNG-10.3-hoops_license_hotfix_release</string>
+        <string>RMSNG-binaries</string>
+        <string>RMSNG-docker-builder</string>
+        <string>RMSNG-docker-push-to-staging-ECR</string>
+        <string>RMSNG-master-ci</string>
+        <string>RMSNG-master-nightly</string>
+        <string>RMSNG-push2StagingECR</string>
+        <string>RMSNG_generate_metrics</string>
+      </jobNames>
+      <jobFilters/>
+      <columns>
+        <hudson.views.StatusColumn/>
+        <hudson.views.WeatherColumn/>
+        <hudson.views.JobColumn/>
+        <hudson.views.LastSuccessColumn/>
+        <hudson.views.LastFailureColumn/>
+        <hudson.views.LastDurationColumn/>
+        <hudson.views.BuildButtonColumn/>
+        <org.jenkins.plugins.builton.BuiltOnColumn plugin="built-on-column@1.1"/>
+      </columns>
+      <recurse>false</recurse>
+    </listView>
+  </views>
+  <primaryView>RMSNG</primaryView>
+  <slaveAgentPort>-1</slaveAgentPort>
+  <disabledAgentProtocols>
+    <string>JNLP-connect</string>
+    <string>JNLP2-connect</string>
+  </disabledAgentProtocols>
+  <label></label>
+  <crumbIssuer class="hudson.security.csrf.DefaultCrumbIssuer">
+    <excludeClientIPFromCrumb>false</excludeClientIPFromCrumb>
+  </crumbIssuer>
+  <nodeProperties/>
+  <globalNodeProperties>
+    <hudson.slaves.EnvironmentVariablesNodeProperty>
+      <envVars serialization="custom">
+        <unserializable-parents/>
+        <tree-map>
+          <default>
+            <comparator class="hudson.util.CaseInsensitiveComparator"/>
+          </default>
+          <int>1</int>
+          <string>SDRIVE</string>
+          <string>/mnt/windowsshares/saba.nextlabs.com</string>
+        </tree-map>
+      </envVars>
+    </hudson.slaves.EnvironmentVariablesNodeProperty>
+  </globalNodeProperties>
+</hudson>

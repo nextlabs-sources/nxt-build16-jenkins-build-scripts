@@ -1,0 +1,131 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description>Runs validateall on RMSNG to verify code-integrity.</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.security.AuthorizationMatrixProperty>
+      <inheritanceStrategy class="org.jenkinsci.plugins.matrixauth.inheritance.InheritParentStrategy"/>
+      <permission>hudson.model.Item.Discover:mxu</permission>
+      <permission>hudson.model.Item.Read:mxu</permission>
+      <permission>hudson.model.Item.Workspace:mxu</permission>
+    </hudson.security.AuthorizationMatrixProperty>
+    <jenkins.model.BuildDiscarderProperty>
+      <strategy class="hudson.tasks.LogRotator">
+        <daysToKeep>-1</daysToKeep>
+        <numToKeep>15</numToKeep>
+        <artifactDaysToKeep>-1</artifactDaysToKeep>
+        <artifactNumToKeep>-1</artifactNumToKeep>
+      </strategy>
+    </jenkins.model.BuildDiscarderProperty>
+    <hudson.plugins.disk__usage.DiskUsageProperty plugin="disk-usage@0.28"/>
+    <com.chikli.hudson.plugin.naginator.NaginatorOptOutProperty plugin="naginator@1.17.2">
+      <optOut>false</optOut>
+    </com.chikli.hudson.plugin.naginator.NaginatorOptOutProperty>
+  </properties>
+  <scm class="hudson.plugins.git.GitSCM" plugin="git@3.8.0">
+    <configVersion>2</configVersion>
+    <userRemoteConfigs>
+      <hudson.plugins.git.UserRemoteConfig>
+        <url>git@bitbucket.org:nxtlbs-devops/rmsng.git</url>
+      </hudson.plugins.git.UserRemoteConfig>
+    </userRemoteConfigs>
+    <branches>
+      <hudson.plugins.git.BranchSpec>
+        <name>origin/master</name>
+      </hudson.plugins.git.BranchSpec>
+    </branches>
+    <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+    <submoduleCfg class="list"/>
+    <extensions>
+      <hudson.plugins.git.extensions.impl.CleanBeforeCheckout/>
+      <hudson.plugins.git.extensions.impl.PruneStaleBranch/>
+    </extensions>
+  </scm>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers>
+    <hudson.triggers.SCMTrigger>
+      <spec>H/5 * * * *</spec>
+      <ignorePostCommitHooks>false</ignorePostCommitHooks>
+    </hudson.triggers.SCMTrigger>
+  </triggers>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>set +x
+
+export NLEXTERNALDIR=/var/lib/jenkins/workspace/source_external
+export NLEXTERNALDIR2=/var/lib/jenkins/workspace/source_main_external
+
+# export LIB_HOME=/var/lib/jenkins/workspace/RMSNG-binaries
+
+# echo
+# echo &quot;################################################################################&quot;
+# echo &quot;INFO: Git info about current state of LIB_HOME&quot;
+# echo &quot;INFO: LIB_HOME is ${LIB_HOME}&quot;
+# cd ${LIB_HOME}/
+# git show --quiet HEAD
+# echo &quot;################################################################################&quot;
+# echo
+
+echo ; echo &quot;INFO: SDRIVE: ${SDRIVE}&quot;; echo
+
+cd ${WORKSPACE}
+./gradlew unzip validate
+
+#################
+
+# Edit build.gradle
+# plugins {
+#   id &quot;org.sonarqube&quot; version &quot;2.5&quot;
+# }
+
+# ./gradlew unzip sonarqube \
+#   -Dsonar.host.url=http://nxt-sonarserver:9000 \
+#   -Dsonar.login=c0f2e5e30d2d2df8df72567262e1fc24b3d8c32a</command>
+    </hudson.tasks.Shell>
+    <hudson.plugins.descriptionsetter.DescriptionSetterBuilder plugin="description-setter@1.10">
+      <regexp>^Checking out Revision (\w{7})</regexp>
+      <description>GitSHA: \1</description>
+    </hudson.plugins.descriptionsetter.DescriptionSetterBuilder>
+  </builders>
+  <publishers>
+    <hudson.plugins.emailext.ExtendedEmailPublisher plugin="email-ext@2.62">
+      <recipientList>$DEFAULT_RECIPIENTS, RMS-DEV-TEAM@nextlabs.com</recipientList>
+      <configuredTriggers>
+        <hudson.plugins.emailext.plugins.trigger.AlwaysTrigger>
+          <email>
+            <subject>$PROJECT_DEFAULT_SUBJECT</subject>
+            <body>$PROJECT_DEFAULT_CONTENT</body>
+            <recipientProviders>
+              <hudson.plugins.emailext.plugins.recipients.ListRecipientProvider/>
+            </recipientProviders>
+            <attachmentsPattern></attachmentsPattern>
+            <attachBuildLog>false</attachBuildLog>
+            <compressBuildLog>false</compressBuildLog>
+            <replyTo>$PROJECT_DEFAULT_REPLYTO</replyTo>
+            <contentType>project</contentType>
+          </email>
+        </hudson.plugins.emailext.plugins.trigger.AlwaysTrigger>
+      </configuredTriggers>
+      <contentType>default</contentType>
+      <defaultSubject>$DEFAULT_SUBJECT</defaultSubject>
+      <defaultContent>$DEFAULT_CONTENT</defaultContent>
+      <attachmentsPattern></attachmentsPattern>
+      <presendScript>$DEFAULT_PRESEND_SCRIPT</presendScript>
+      <postsendScript>$DEFAULT_POSTSEND_SCRIPT</postsendScript>
+      <attachBuildLog>false</attachBuildLog>
+      <compressBuildLog>false</compressBuildLog>
+      <replyTo>$DEFAULT_REPLYTO</replyTo>
+      <from></from>
+      <saveOutput>false</saveOutput>
+      <disabled>false</disabled>
+    </hudson.plugins.emailext.ExtendedEmailPublisher>
+  </publishers>
+  <buildWrappers>
+    <hudson.plugins.timestamper.TimestamperBuildWrapper plugin="timestamper@1.8.9"/>
+  </buildWrappers>
+</project>

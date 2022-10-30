@@ -1,0 +1,66 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<user>
+  <fullName>Michelle (Jinli) Xu</fullName>
+  <properties>
+    <jenkins.security.ApiTokenProperty>
+      <tokenStore>
+        <tokenList/>
+      </tokenStore>
+    </jenkins.security.ApiTokenProperty>
+    <com.cloudbees.plugins.credentials.UserCredentialsProvider_-UserCredentialsProperty plugin="credentials@2.1.18">
+      <domainCredentialsMap class="hudson.util.CopyOnWriteMap$Hash"/>
+    </com.cloudbees.plugins.credentials.UserCredentialsProvider_-UserCredentialsProperty>
+    <hudson.plugins.emailext.watching.EmailExtWatchAction_-UserProperty plugin="email-ext@2.63">
+      <triggers/>
+    </hudson.plugins.emailext.watching.EmailExtWatchAction_-UserProperty>
+    <hudson.model.MyViewsProperty>
+      <views>
+        <hudson.model.AllView>
+          <owner class="hudson.model.MyViewsProperty" reference="../../.."/>
+          <name>all</name>
+          <filterExecutors>false</filterExecutors>
+          <filterQueue>false</filterQueue>
+          <properties class="hudson.model.View$PropertyList"/>
+        </hudson.model.AllView>
+      </views>
+    </hudson.model.MyViewsProperty>
+    <org.jenkinsci.plugins.displayurlapi.user.PreferredProviderUserProperty plugin="display-url-api@2.2.0">
+      <providerId>default</providerId>
+    </org.jenkinsci.plugins.displayurlapi.user.PreferredProviderUserProperty>
+    <hudson.model.PaneStatusProperties>
+      <collapsed/>
+    </hudson.model.PaneStatusProperties>
+    <hudson.plugins.perforce.PerforceUserProperty plugin="perforce@1.3.36"/>
+    <org.jenkinsci.plugins.readonly.UserConfiguration plugin="read-only-configurations@1.10">
+      <displayForReadOnlyPermission>true</displayForReadOnlyPermission>
+    </org.jenkinsci.plugins.readonly.UserConfiguration>
+    <hudson.search.UserSearchProperty>
+      <insensitiveSearch>true</insensitiveSearch>
+    </hudson.search.UserSearchProperty>
+    <hudson.tasks.Mailer_-UserProperty plugin="mailer@1.22">
+      <emailAddress>Michelle.Xu@nextlabs.com</emailAddress>
+    </hudson.tasks.Mailer_-UserProperty>
+    <jenkins.security.LastGrantedAuthoritiesProperty>
+      <roles>
+        <string>all</string>
+        <string>authenticated</string>
+        <string>CDC RMC QA</string>
+        <string>sc-scrumteam</string>
+        <string>CDC All</string>
+        <string>Allowed RODC Password Replication Group</string>
+        <string>CDC Qatd</string>
+        <string>Users</string>
+        <string>CDC Leader</string>
+        <string>CDC VMCREATE Manager</string>
+        <string>CDC VMPOWER Manager</string>
+        <string>RMS-QA</string>
+        <string>Domain Users</string>
+        <string>CDC Build Group</string>
+        <string>CDC Remote Access Group</string>
+        <string>skydrm-verifier@nextlabs.com</string>
+        <string>Release</string>
+      </roles>
+      <timestamp>1542967656393</timestamp>
+    </jenkins.security.LastGrantedAuthoritiesProperty>
+  </properties>
+</user>

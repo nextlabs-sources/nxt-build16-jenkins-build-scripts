@@ -1,0 +1,269 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description>Creates RMSNG installers based on origin/skydrm_10.3_b32_hoops_license_hotfix branch</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <jenkins.model.BuildDiscarderProperty>
+      <strategy class="hudson.tasks.LogRotator">
+        <daysToKeep>-1</daysToKeep>
+        <numToKeep>15</numToKeep>
+        <artifactDaysToKeep>-1</artifactDaysToKeep>
+        <artifactNumToKeep>-1</artifactNumToKeep>
+      </strategy>
+    </jenkins.model.BuildDiscarderProperty>
+    <hudson.plugins.disk__usage.DiskUsageProperty plugin="disk-usage@0.28"/>
+    <com.chikli.hudson.plugin.naginator.NaginatorOptOutProperty plugin="naginator@1.17.2">
+      <optOut>false</optOut>
+    </com.chikli.hudson.plugin.naginator.NaginatorOptOutProperty>
+  </properties>
+  <scm class="hudson.plugins.git.GitSCM" plugin="git@3.6.0">
+    <configVersion>2</configVersion>
+    <userRemoteConfigs>
+      <hudson.plugins.git.UserRemoteConfig>
+        <url>git@bitbucket.org:nxtlbs-devops/rmsng.git</url>
+      </hudson.plugins.git.UserRemoteConfig>
+    </userRemoteConfigs>
+    <branches>
+      <hudson.plugins.git.BranchSpec>
+        <name>origin/skydrm_10.3_b32_hoops_license_hotfix</name>
+      </hudson.plugins.git.BranchSpec>
+    </branches>
+    <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+    <submoduleCfg class="list"/>
+    <extensions>
+      <hudson.plugins.git.extensions.impl.CleanBeforeCheckout/>
+      <hudson.plugins.git.extensions.impl.PruneStaleBranch/>
+    </extensions>
+  </scm>
+  <canRoam>true</canRoam>
+  <disabled>true</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers/>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>set +x
+
+mkdir -p ~/.gradle
+[ `grep -c -e &quot;org.gradle.daemon=false&quot; ~/.gradle/gradle.properties` -eq 0 ] &amp;&amp; echo &quot;org.gradle.daemon=false&quot; &gt;&gt; ~/.gradle/gradle.properties
+
+export NLEXTERNALDIR=/var/lib/jenkins/workspace/source_external
+export NLEXTERNALDIR2=/var/lib/jenkins/workspace/source_main_external/
+
+BUILD_MANIFEST_FILE=${WORKSPACE}/build.manifest
+
+cd ${WORKSPACE}/
+current_GITSHA=$(git log -1 --format=&quot;%h&quot;) # Obtain current GITSHA - required for sending consolidated diff in email
+
+# Obtain the SHA of the lastSuccessfulBuild
+rm -f ${WORKSPACE}/RMSNG-10.3-hoops_license_hotfix_release_lastSuccessfulBuild.xml
+wget \
+    --auth-no-challenge \
+    --http-user=build-op \
+    --http-password=def1b869316274116ed91cbbbe656332 \
+    --secure-protocol=TLSv1 \
+    ${JENKINS_URL}/job/RMSNG-10.3-hoops_license_hotfix_release/lastSuccessfulBuild/api/xml \
+    -O \
+    ${WORKSPACE}/RMSNG-10.3-hoops_license_hotfix_release_lastSuccessfulBuild.xml
+lastSuccessfulBuild_GitSHA=$(perl /var/lib/jenkins/workspace/getLastSuccessfulGitSHA.pl ${WORKSPACE}/RMSNG-10.3-hoops_license_hotfix_release_lastSuccessfulBuild.xml)
+
+echo &quot;INFO: lastSuccessfulBuild_GitSHA: ${lastSuccessfulBuild_GitSHA}&quot;
+
+cd ${WORKSPACE}
+
+lastSuccessfulBuild_GitSHA_short=$(echo ${lastSuccessfulBuild_GitSHA} | cut -c1-7)
+
+# Write information about what&apos;s changed since last nightly-build
+rm -f ${WORKSPACE}/changes-since-last-successful-build.txt
+echo &quot;################################################################################&quot; &gt; ${WORKSPACE}/changes-since-last-successful-build.txt
+echo &quot;Changes since last successful nightly build&quot; &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build.txt
+echo &quot;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~&quot; &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build.txt
+echo &quot;Last successful build GitSHA: ${lastSuccessfulBuild_GitSHA_short}&quot; &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build.txt
+echo &quot;        Current build GitSHA: ${current_GITSHA}&quot; &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build.txt
+echo &quot;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~&quot; &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build.txt
+git log --oneline --date=short --graph --format=format:&apos;%h - [%ad] - %an - %-s%w(0,0,9)%+d&apos; ${lastSuccessfulBuild_GitSHA_short}..${current_GITSHA} &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build.txt
+echo &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build.txt
+echo &quot;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~&quot; &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build.txt
+
+# Write information about what&apos;s changed since last nightly-build
+rm -f ${WORKSPACE}/changes-since-last-successful-build-without-merges.txt
+echo &quot;################################################################################&quot; &gt; ${WORKSPACE}/changes-since-last-successful-build-without-merges.txt
+echo &quot;Changes since last successful nightly build&quot; &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build-without-merges.txt
+echo &quot;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~&quot; &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build-without-merges.txt
+echo &quot;Last successful nightly build GitSHA: ${lastSuccessfulBuild_GitSHA_short}&quot; &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build-without-merges.txt
+echo &quot;                Current build GitSHA: ${current_GITSHA}&quot; &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build-without-merges.txt
+echo &quot;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~&quot; &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build-without-merges.txt
+git log --oneline --date=short --graph --format=format:&apos;%h - [%ad] - %an - %-s%w(0,0,9)%+d&apos; ${lastSuccessfulBuild_GitSHA_short}..${current_GITSHA} --no-merges &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build-without-merges.txt
+echo &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build-without-merges.txt
+echo &quot;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~&quot; &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build-without-merges.txt
+
+echo
+echo &quot;INFO: ################################################################################&quot;
+echo &quot;INFO: Changes since last successful nightly build (excluding merged-to-master commits)&quot;
+echo
+git log --oneline --date=short --format=format:&apos;%h - [%ad] - %an - %-s%w(0,0,9)%+d&apos; ${lastSuccessfulBuild_GitSHA_short}..${current_GITSHA} --no-merges
+echo
+echo &quot;INFO: ################################################################################&quot;
+echo
+
+################################################################################
+############################# LET&apos;S DO A BUILD ###############################
+################################################################################
+
+export VERSION_RMS_STR=$(awk -F&apos;=&apos; &apos;/^version=/{print $2}&apos; ${WORKSPACE}/build.properties)
+export VERSION_RMS_STR_MAJOR=$(echo ${VERSION_RMS_STR} | cut -d. -f1)
+export VERSION_RMS_STR_MINOR=$(echo ${VERSION_RMS_STR} | cut -d. -f2)
+export BUILD_DATE_LONG=$(date +&quot;%Y%m%d%H%M&quot;)
+
+export RMSNG_BUILD_NUMBER=$(printf %04d ${BUILD_NUMBER})
+echo &quot;INFO: RMSNG_BUILD_NUMBER: ${RMSNG_BUILD_NUMBER}&quot;
+export RMSNG_PACKAGE_NAME=RMS-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.zip
+
+# Set version in build.config files
+./gradlew setVersion setRelease -p shared 
+
+# build wars
+./gradlew unzip clean war
+
+# copy to buildoutput folder 
+mkdir -p ${WORKSPACE}/buildoutput
+cp ${WORKSPACE}/rms/server/build/libs/rms.war ${WORKSPACE}/buildoutput/
+cp ${WORKSPACE}/router/server/build/libs/router.war ${WORKSPACE}/buildoutput/
+cp ${WORKSPACE}/viewer/build/libs/viewer.war ${WORKSPACE}/buildoutput/
+
+# build viewer zip files
+./gradlew packageViewers -p viewer
+
+# copy to buildoutput
+cp ${WORKSPACE}/viewer/build/distributions/*.zip ${WORKSPACE}/buildoutput/
+
+# Now create a zip of the war files we need
+cd ${WORKSPACE}/
+zip -j ${WORKSPACE}/buildoutput/${RMSNG_PACKAGE_NAME} \
+	buildoutput/router.war \
+	buildoutput/rms.war \
+	buildoutput/viewer.war
+
+################################################################################
+############################# PUBLISH TO BODA PART #############################
+################################################################################
+# Push the zip to BODA
+export VERSION_BUILD_SHORT=${BUILD_NUMBER}
+export REPOSITORY_ROOT=/mnt/windowsshares/saba.nextlabs.com/build/release_candidate
+export PUBLISH_BODA_SC_DIR=${REPOSITORY_ROOT}/SecureCollaboration/${VERSION_RMS_STR}/${VERSION_BUILD_SHORT}
+export PUBLISH_BODA_SC_ARTIFACT_DIR=${REPOSITORY_ROOT}/artifacts/SecureCollaboration/${VERSION_RMS_STR}/${VERSION_BUILD_SHORT}
+export LOG_FILE=${WORKSPACE}/buildRelease.log
+
+export PUBLISH_TO_BODA=1
+
+# Create BODA dirs that must be present
+mkdir -p ${PUBLISH_BODA_SC_DIR}
+mkdir -p ${PUBLISH_BODA_SC_ARTIFACT_DIR}
+
+(
+set -x
+
+# Extract Git and Jenkins info from Workspace (works only if running on Jenkins)
+if [ -f ${WORKSPACE}/../config.xml ]; then
+    ${WORKSPACE}/scripts/getGitWorkspaceInfo.pl ${WORKSPACE}/../config.xml
+fi
+
+# Publish to BODA only if PUBLISH_TO_BODA environment variable is set (set in Jenkins build process)
+if [ &quot;X${PUBLISH_TO_BODA}&quot; = &quot;XYes&quot; -o &quot;X${PUBLISH_TO_BODA}&quot; = &quot;Xyes&quot; -o &quot;X${PUBLISH_TO_BODA}&quot; = &quot;XYES&quot; -o &quot;X${PUBLISH_TO_BODA}&quot; = &quot;X1&quot; ]
+then
+    cp ${WORKSPACE}/buildoutput/${RMSNG_PACKAGE_NAME} ${PUBLISH_BODA_SC_DIR}/
+    # Rename the Viewer packages to the RMS package format
+    mv ${WORKSPACE}/buildoutput/RightsManagementServer-CADViewer-${BUILD_NUMBER}.zip ${WORKSPACE}/buildoutput/RightsManagementServer-CADViewer-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.zip
+    mv ${WORKSPACE}/buildoutput/RightsManagementServer-DocViewer-${BUILD_NUMBER}.zip ${WORKSPACE}/buildoutput/RightsManagementServer-DocViewer-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.zip
+    mv ${WORKSPACE}/buildoutput/RightsManagementServer-SAPViewer-${BUILD_NUMBER}.zip ${WORKSPACE}/buildoutput/RightsManagementServer-SAPViewer-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.zip
+
+    cd ${WORKSPACE}/buildoutput/
+    VIEWERPKGLIST=$(echo RightsManagementServer-*Viewer-*.zip)
+    cp RightsManagementServer-*Viewer-*.zip ${PUBLISH_BODA_SC_DIR}/
+    if [ -f &quot;${PUBLISH_BODA_SC_DIR}/${RMSNG_PACKAGE_NAME}&quot; ] ; then
+        # Write information to build.manifest file
+        echo &quot;[BUILD MANIFEST]   Product Name       : Secure Collaboration&quot;
+        echo &quot;[BUILD MANIFEST]   Installer Location : ${PUBLISH_BODA_SC_DIR}&quot;
+        echo &quot;[BUILD MANIFEST]   Installer Package  : ${RMSNG_PACKAGE_NAME} ${VIEWERPKGLIST}&quot;
+    fi
+fi
+set +x
+) 2&gt;&amp;1 | tee $LOG_FILE
+
+# Create and publish build manifest
+perl ${WORKSPACE}/scripts/createBuildManifest.pl $LOG_FILE &gt; $BUILD_MANIFEST_FILE || exit $?
+
+# Publish to BODA only if PUBLISH_TO_BODA environment variable is set (set in Jenkins build process)
+if [ &quot;X${PUBLISH_TO_BODA}&quot; = &quot;XYes&quot; -o &quot;X${PUBLISH_TO_BODA}&quot; = &quot;Xyes&quot; -o &quot;X${PUBLISH_TO_BODA}&quot; = &quot;XYES&quot; -o &quot;X${PUBLISH_TO_BODA}&quot; = &quot;X1&quot; ]
+then
+    cp ${BUILD_MANIFEST_FILE} ${PUBLISH_BODA_SC_ARTIFACT_DIR}/
+    cp ${WORKSPACE}/changes-since-last-successful-build.txt ${WORKSPACE}/changes-since-last-successful-build-without-merges.txt ${PUBLISH_BODA_SC_ARTIFACT_DIR}/ # Push what&apos;s new content to artifacts dir
+fi
+
+echo
+echo
+echo &quot;####################### BUILD MANIFEST CONTENTS ########################&quot;
+cat ${BUILD_MANIFEST_FILE}
+echo &quot;########################################################################&quot;
+
+################################################################################
+########################### END PUBLISH TO BODA PART ###########################
+################################################################################
+
+## EOF ##</command>
+    </hudson.tasks.Shell>
+    <hudson.plugins.descriptionsetter.DescriptionSetterBuilder plugin="description-setter@1.10">
+      <regexp>^Checking out Revision (\w{7})</regexp>
+      <description>GitSHA: \1</description>
+    </hudson.plugins.descriptionsetter.DescriptionSetterBuilder>
+  </builders>
+  <publishers>
+    <hudson.tasks.ArtifactArchiver>
+      <artifacts>buildoutput/RMS*.zip, changes-since-last-successful-build.txt, changes-since-last-successful-build-without-merges.txt</artifacts>
+      <allowEmptyArchive>false</allowEmptyArchive>
+      <onlyIfSuccessful>false</onlyIfSuccessful>
+      <fingerprint>false</fingerprint>
+      <defaultExcludes>true</defaultExcludes>
+      <caseSensitive>true</caseSensitive>
+    </hudson.tasks.ArtifactArchiver>
+    <hudson.plugins.emailext.ExtendedEmailPublisher plugin="email-ext@2.60">
+      <recipientList>$DEFAULT_RECIPIENTS, sc-scrumteam@nextlabs.com</recipientList>
+      <configuredTriggers>
+        <hudson.plugins.emailext.plugins.trigger.AlwaysTrigger>
+          <email>
+            <subject>$PROJECT_DEFAULT_SUBJECT</subject>
+            <body>$PROJECT_DEFAULT_CONTENT</body>
+            <recipientProviders>
+              <hudson.plugins.emailext.plugins.recipients.ListRecipientProvider/>
+            </recipientProviders>
+            <attachmentsPattern></attachmentsPattern>
+            <attachBuildLog>false</attachBuildLog>
+            <compressBuildLog>false</compressBuildLog>
+            <replyTo>$PROJECT_DEFAULT_REPLYTO</replyTo>
+            <contentType>project</contentType>
+          </email>
+        </hudson.plugins.emailext.plugins.trigger.AlwaysTrigger>
+      </configuredTriggers>
+      <contentType>default</contentType>
+      <defaultSubject>$DEFAULT_SUBJECT</defaultSubject>
+      <defaultContent>$BUILD_STATUS: $PROJECT_NAME - Build #$BUILD_NUMBER:
+
+View the build output at: $BUILD_URL/console.
+
+---------
+Changes:
+Check attachment &apos;changes-since-last-successful-build-without-merges.txt&apos; for changes in this build since last successful build</defaultContent>
+      <attachmentsPattern>changes-since-last-successful-build-without-merges.txt</attachmentsPattern>
+      <presendScript>$DEFAULT_PRESEND_SCRIPT</presendScript>
+      <postsendScript>$DEFAULT_POSTSEND_SCRIPT</postsendScript>
+      <attachBuildLog>false</attachBuildLog>
+      <compressBuildLog>false</compressBuildLog>
+      <replyTo>$DEFAULT_REPLYTO</replyTo>
+      <saveOutput>false</saveOutput>
+      <disabled>false</disabled>
+    </hudson.plugins.emailext.ExtendedEmailPublisher>
+  </publishers>
+  <buildWrappers/>
+</project>

@@ -1,0 +1,95 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description>Runs SonarScanner on RMSNG Code</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <jenkins.model.BuildDiscarderProperty>
+      <strategy class="hudson.tasks.LogRotator">
+        <daysToKeep>-1</daysToKeep>
+        <numToKeep>15</numToKeep>
+        <artifactDaysToKeep>-1</artifactDaysToKeep>
+        <artifactNumToKeep>-1</artifactNumToKeep>
+      </strategy>
+    </jenkins.model.BuildDiscarderProperty>
+    <hudson.plugins.disk__usage.DiskUsageProperty plugin="disk-usage@0.28"/>
+    <com.chikli.hudson.plugin.naginator.NaginatorOptOutProperty plugin="naginator@1.17.2">
+      <optOut>false</optOut>
+    </com.chikli.hudson.plugin.naginator.NaginatorOptOutProperty>
+  </properties>
+  <scm class="hudson.plugins.git.GitSCM" plugin="git@3.8.0">
+    <configVersion>2</configVersion>
+    <userRemoteConfigs>
+      <hudson.plugins.git.UserRemoteConfig>
+        <url>git@bitbucket.org:nxtlbs-devops/rmsng.git</url>
+      </hudson.plugins.git.UserRemoteConfig>
+    </userRemoteConfigs>
+    <branches>
+      <hudson.plugins.git.BranchSpec>
+        <name>origin/master</name>
+      </hudson.plugins.git.BranchSpec>
+    </branches>
+    <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+    <submoduleCfg class="list"/>
+    <extensions>
+      <hudson.plugins.git.extensions.impl.CleanBeforeCheckout/>
+      <hudson.plugins.git.extensions.impl.PruneStaleBranch/>
+    </extensions>
+  </scm>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers>
+    <hudson.triggers.SCMTrigger>
+      <spec>H/5 * * * *</spec>
+      <ignorePostCommitHooks>false</ignorePostCommitHooks>
+    </hudson.triggers.SCMTrigger>
+  </triggers>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>set +x
+
+export NLEXTERNALDIR=/var/lib/jenkins/workspace/source_external
+export NLEXTERNALDIR2=/var/lib/jenkins/workspace/source_main_external
+
+echo ; echo &quot;INFO: SDRIVE: ${SDRIVE}&quot;; echo
+
+cd ${WORKSPACE}
+./gradlew unzip
+
+#################
+
+# Edit build.gradle
+# plugins {
+#   id &quot;org.sonarqube&quot; version &quot;2.5&quot;
+# }
+
+# ./gradlew unzip sonarqube \
+#   -Dsonar.host.url=http://nxt-sonarserver:9000 \
+#   -Dsonar.login=c0f2e5e30d2d2df8df72567262e1fc24b3d8c32a</command>
+    </hudson.tasks.Shell>
+    <hudson.plugins.descriptionsetter.DescriptionSetterBuilder plugin="description-setter@1.10">
+      <regexp>^Checking out Revision (\w{7})</regexp>
+      <description>GitSHA: \1</description>
+    </hudson.plugins.descriptionsetter.DescriptionSetterBuilder>
+    <hudson.plugins.sonar.SonarRunnerBuilder plugin="sonar@2.6.1">
+      <project></project>
+      <properties># Required Metadata
+sonar.projectKey=RMSNG-Jenkins
+sonar.projectName=RMSNG
+
+# Path to source code
+# sonar.sources=captcha,rmjavasdk-ng,rms,router,shared,viewer,</properties>
+      <javaOpts></javaOpts>
+      <additionalArguments></additionalArguments>
+      <jdk>(Inherit From Job)</jdk>
+      <task></task>
+    </hudson.plugins.sonar.SonarRunnerBuilder>
+  </builders>
+  <publishers/>
+  <buildWrappers>
+    <hudson.plugins.timestamper.TimestamperBuildWrapper plugin="timestamper@1.8.9"/>
+  </buildWrappers>
+</project>

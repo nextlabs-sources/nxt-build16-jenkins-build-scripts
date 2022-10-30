@@ -1,0 +1,208 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description>Docker build of RMSNG&#xd;
+&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;- &lt;b&gt;repo&lt;/b&gt;: https://bitbucket.org/nxtlbs-devops/rmsng&#xd;
+&lt;br&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;- &lt;b&gt;branch&lt;/b&gt;: origin/master</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <jenkins.model.BuildDiscarderProperty>
+      <strategy class="hudson.tasks.LogRotator">
+        <daysToKeep>-1</daysToKeep>
+        <numToKeep>15</numToKeep>
+        <artifactDaysToKeep>-1</artifactDaysToKeep>
+        <artifactNumToKeep>-1</artifactNumToKeep>
+      </strategy>
+    </jenkins.model.BuildDiscarderProperty>
+    <hudson.plugins.disk__usage.DiskUsageProperty plugin="disk-usage@0.28"/>
+    <com.chikli.hudson.plugin.naginator.NaginatorOptOutProperty plugin="naginator@1.17.2">
+      <optOut>false</optOut>
+    </com.chikli.hudson.plugin.naginator.NaginatorOptOutProperty>
+  </properties>
+  <scm class="hudson.plugins.git.GitSCM" plugin="git@3.7.0">
+    <configVersion>2</configVersion>
+    <userRemoteConfigs>
+      <hudson.plugins.git.UserRemoteConfig>
+        <url>git@bitbucket.org:nxtlbs-devops/rmsng.git</url>
+      </hudson.plugins.git.UserRemoteConfig>
+    </userRemoteConfigs>
+    <branches>
+      <hudson.plugins.git.BranchSpec>
+        <name>origin/master</name>
+      </hudson.plugins.git.BranchSpec>
+    </branches>
+    <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+    <submoduleCfg class="list"/>
+    <extensions>
+      <hudson.plugins.git.extensions.impl.RelativeTargetDirectory>
+        <relativeTargetDir>rmsng</relativeTargetDir>
+      </hudson.plugins.git.extensions.impl.RelativeTargetDirectory>
+      <hudson.plugins.git.extensions.impl.CleanBeforeCheckout/>
+    </extensions>
+  </scm>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers/>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>set +x
+
+mkdir -p ~/.gradle
+[ `grep -c -e &quot;org.gradle.daemon=false&quot; ~/.gradle/gradle.properties` -eq 0 ] &amp;&amp; echo &quot;org.gradle.daemon=false&quot; &gt;&gt; ~/.gradle/gradle.properties
+
+export NLEXTERNALDIR=/var/lib/jenkins/workspace/source_external
+export NLEXTERNALDIR2=/var/lib/jenkins/workspace/source_main_external/
+
+BUILD_MANIFEST_FILE=${WORKSPACE}/build.manifest
+
+cd ${WORKSPACE}/rmsng
+
+################################################################################
+############################### LET&apos;S BUILD RMS ################################
+################################################################################
+
+export VERSION_RMS_STR=$(awk -F&apos;=&apos; &apos;/^version=/{print $2}&apos; ${WORKSPACE}/rmsng/build.properties)
+export VERSION_RMS_STR_MAJOR=$(echo ${VERSION_RMS_STR} | cut -d. -f1)
+export VERSION_RMS_STR_MINOR=$(echo ${VERSION_RMS_STR} | cut -d. -f2)
+export BUILD_DATE_LONG=$(date +&quot;%Y%m%d%H%M&quot;)
+
+export RMSNG_BUILD_NUMBER=$(printf %04d ${BUILD_NUMBER})
+echo &quot;INFO: RMSNG_BUILD_NUMBER: ${RMSNG_BUILD_NUMBER}&quot;
+export RMSNG_PACKAGE_NAME=RMS-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.zip
+export RMJAVASDK_NG_PACKAGE_NAME=RMJavaSDK-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.zip
+
+# Set version in build.config files
+./gradlew setVersion setRelease -p shared 
+
+# Run validate
+./gradlew unzip validate
+git reset --hard
+git clean -fdx
+
+# build rmjavasdk-ng and publish the artifact
+./gradlew clean publish -p rmjavasdk-ng
+
+# Create the buildoutput folder
+mkdir -p ${WORKSPACE}/rmsng/buildoutput
+
+# copy to buildoutput
+cp ${WORKSPACE}/rmsng/rmjavasdk-ng/build/distributions/rmjavasdk-ng.zip ${WORKSPACE}/rmsng/buildoutput/${RMJAVASDK_NG_PACKAGE_NAME}
+cp ${WORKSPACE}/rmsng/rmjavasdk-ng/build/libs/proguard.map ${WORKSPACE}/rmsng/buildoutput/proguard.map
+
+# build wars
+./gradlew unzip clean war
+
+# copy to buildoutput folder 
+cp ${WORKSPACE}/rmsng/rms/server/build/libs/rms.war ${WORKSPACE}/rmsng/buildoutput/
+cp ${WORKSPACE}/rmsng/router/server/build/libs/router.war ${WORKSPACE}/rmsng/buildoutput/
+cp ${WORKSPACE}/rmsng/viewer/build/libs/viewer.war ${WORKSPACE}/rmsng/buildoutput/
+
+# build viewer zip files
+./gradlew packageViewers -p viewer
+
+# copy to buildoutput
+cp ${WORKSPACE}/rmsng/viewer/build/distributions/*.zip ${WORKSPACE}/rmsng/buildoutput/
+
+# Now create a zip of the war files we need
+cd ${WORKSPACE}/rmsng/
+zip -j ${WORKSPACE}/rmsng/buildoutput/${RMSNG_PACKAGE_NAME} \
+	buildoutput/router.war \
+	buildoutput/rms.war \
+	buildoutput/viewer.war
+
+################################################################################
+######################### LET&apos;S DO SOME DOCKER BUILDS ##########################
+################################################################################
+cd ${WORKSPACE}/rmsng
+
+# Copy the wars to the docker subdirs
+cp buildoutput/rms.war    docker/rms/
+cp buildoutput/router.war docker/router/
+cp buildoutput/viewer.war docker/viewer/
+
+# Build the docker images
+docker build --rm -t base:${VERSION_RMS_STR}   -t base:LATEST   docker/base
+docker build --rm -t db:${VERSION_RMS_STR}     -t db:LATEST     docker/db
+docker build --rm -t rms:${VERSION_RMS_STR}    -t rms:LATEST    docker/rms
+docker build --rm -t router:${VERSION_RMS_STR} -t router:LATEST docker/router
+docker build --rm -t viewer:${VERSION_RMS_STR} -t viewer:LATEST docker/viewer
+
+# Export the docker images for downloading from BODA
+docker save -o ${WORKSPACE}/rmsng/buildoutput/RightsManagementServer-RMS-DockerImage-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.tar rms:${VERSION_RMS_STR}
+docker save -o ${WORKSPACE}/rmsng/buildoutput/RightsManagementServer-Router-DockerImage-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.tar router:${VERSION_RMS_STR}
+docker save -o ${WORKSPACE}/rmsng/buildoutput/RightsManagementServer-Viewer-DockerImage-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.tar viewer:${VERSION_RMS_STR}
+
+################################################################################
+############################ END DOCKER BUILDS PART ############################
+################################################################################
+
+## Docker Images Cleanup ##
+docker rmi $(docker images --filter &quot;dangling=true&quot; -q --no-trunc) 1&gt;/dev/null 2&gt;&amp;1 || true
+for component in base db rms router viewer
+do
+	docker image ls -a --format &quot;{{.Tag}}&quot; ${component} | grep -v LATEST | perl -e &apos;
+	my @arr = sort {$a &lt;=&gt; $b} &lt;STDIN&gt;;
+	chomp @arr;
+	foreach $tag (@arr[0..$#arr-2]) {
+		print &quot;$tag\n&quot;;
+	}
+	&apos; | while read tagname
+	do
+		echo docker image rm -f ${component}:${tagname}
+		docker image rm -f ${component}:${tagname}
+	done
+done
+
+## EOF ##</command>
+    </hudson.tasks.Shell>
+    <hudson.plugins.descriptionsetter.DescriptionSetterBuilder plugin="description-setter@1.10">
+      <regexp>_(GitSHA: \w{7})</regexp>
+    </hudson.plugins.descriptionsetter.DescriptionSetterBuilder>
+    <hudson.plugins.descriptionsetter.DescriptionSetterBuilder plugin="description-setter@1.10">
+      <regexp>^Setting version to ([0-9.]+)$</regexp>
+      <description>Version: \1</description>
+    </hudson.plugins.descriptionsetter.DescriptionSetterBuilder>
+  </builders>
+  <publishers>
+    <hudson.plugins.emailext.ExtendedEmailPublisher plugin="email-ext@2.61">
+      <recipientList>$DEFAULT_RECIPIENTS, Althaf.Ashraf@nextlabs.com</recipientList>
+      <configuredTriggers>
+        <hudson.plugins.emailext.plugins.trigger.AlwaysTrigger>
+          <email>
+            <subject>$PROJECT_DEFAULT_SUBJECT</subject>
+            <body>$PROJECT_DEFAULT_CONTENT</body>
+            <recipientProviders>
+              <hudson.plugins.emailext.plugins.recipients.ListRecipientProvider/>
+            </recipientProviders>
+            <attachmentsPattern></attachmentsPattern>
+            <attachBuildLog>false</attachBuildLog>
+            <compressBuildLog>false</compressBuildLog>
+            <replyTo>$PROJECT_DEFAULT_REPLYTO</replyTo>
+            <contentType>project</contentType>
+          </email>
+        </hudson.plugins.emailext.plugins.trigger.AlwaysTrigger>
+      </configuredTriggers>
+      <contentType>default</contentType>
+      <defaultSubject>$DEFAULT_SUBJECT</defaultSubject>
+      <defaultContent>$BUILD_STATUS: $PROJECT_NAME - Build #$BUILD_NUMBER:
+
+View the build output at: $BUILD_URL/console.
+
+---------</defaultContent>
+      <attachmentsPattern></attachmentsPattern>
+      <presendScript>$DEFAULT_PRESEND_SCRIPT</presendScript>
+      <postsendScript>$DEFAULT_POSTSEND_SCRIPT</postsendScript>
+      <attachBuildLog>false</attachBuildLog>
+      <compressBuildLog>false</compressBuildLog>
+      <replyTo>$DEFAULT_REPLYTO</replyTo>
+      <saveOutput>false</saveOutput>
+      <disabled>false</disabled>
+    </hudson.plugins.emailext.ExtendedEmailPublisher>
+  </publishers>
+  <buildWrappers>
+    <hudson.plugins.timestamper.TimestamperBuildWrapper plugin="timestamper@1.8.9"/>
+  </buildWrappers>
+</project>

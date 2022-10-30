@@ -1,0 +1,175 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description>Task to check and list BODA dirs under \\nextlabs.com\share\data\build that have more than 15 versions in them</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.plugins.disk__usage.DiskUsageProperty plugin="disk-usage@0.28"/>
+    <com.chikli.hudson.plugin.naginator.NaginatorOptOutProperty plugin="naginator@1.17.2">
+      <optOut>false</optOut>
+    </com.chikli.hudson.plugin.naginator.NaginatorOptOutProperty>
+  </properties>
+  <scm class="hudson.scm.NullSCM"/>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers>
+    <hudson.triggers.TimerTrigger>
+      <spec>H 7 * * *</spec>
+    </hudson.triggers.TimerTrigger>
+  </triggers>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>set +x
+
+# Checking in PCV directory
+echo &quot;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~&quot;
+echo &quot;Searching in &apos;//nextlabs.com/share/data/build/pcv&apos; directory&quot;
+echo &quot;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~&quot;
+cd /mnt/windowsshares/saba.nextlabs.com/build/pcv
+for component in Teamcenter/RightsManagementExtension/*/* artifacts/Teamcenter/RightsManagementExtension/*/* artifacts/EnoviaEnforcer/EntitlementManager/* artifacts/PTCWindchill/EMEntitlementManager/* artifacts/ProfessionalServices/SwAF/*/* artifacts/ProfessionalServices/UTC/*/*/* artifacts/WindchillEM/EntitlementManager/* EnoviaEnforcer/EntitlementManager/* PTCWindchill/EM/*/* WindchillEM/EntitlementManager/*
+do
+  numdirs=`ls &quot;${component}&quot; 2&gt;/dev/null | wc -l`
+  if [ ${numdirs} -ge 15 ]; then
+    dirsiz=`du -sh ${component} | awk &apos;{print $1}&apos;`
+    echo &quot;INFO: Found //nextlabs.com/share/data/build/pcv/${component} : ${numdirs} : ${dirsiz}&quot; | sed &apos;s@/@\\@g&apos;
+  fi
+done
+for component in artifacts/*/* [b-zA-Z]*/*
+do
+  [ `echo &quot;${component}&quot; | grep -c symbols` -ne 0 ] &amp;&amp; continue # I have no idea what symbols directory is needed for
+  [ `echo &quot;${component}&quot; | grep -c Teamcenter` -ne 0 ] &amp;&amp; continue # TeamCenter directories - we already handled above
+  [ `echo &quot;${component}&quot; | grep -ic sap` -ne 0 ] &amp;&amp; continue # SAP stuff - no idea whether this needs to be pruned - let&apos;s leave it alone
+  [ `echo &quot;${component}&quot; | grep -c artifacts/EnoviaEnforcer/EntitlementManager` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c artifacts/ProfessionalServices/SwAF` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c artifacts/ProfessionalServices/UTC` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c artifacts/PTCWindchill/EMEntitlementManager` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c EnoviaEnforcer/EntitlementManager` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c PTCWindchill/EM` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c WindchillEM/EntitlementManager` -ne 0 ] &amp;&amp; continue # We already handled these above
+  numdirs=`ls &quot;${component}&quot; 2&gt;/dev/null | wc -l`
+  if [ ${numdirs} -ge 15 ]; then
+    dirsiz=`du -sh ${component} | awk &apos;{print $1}&apos;`
+    echo &quot;INFO: Found //nextlabs.com/share/data/build/pcv/${component} : ${numdirs} : ${dirsiz}&quot; | sed &apos;s@/@\\@g&apos;
+  fi
+done
+echo &quot;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~&quot;
+
+echo
+echo
+echo
+
+# Checking in release_candidate directory
+echo &quot;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~&quot;
+echo &quot;Searching in &apos;//nextlabs.com/share/data/build/release_candidate&apos; directory&quot;
+echo &quot;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~&quot;
+cd /mnt/windowsshares/saba.nextlabs.com/build/release_candidate
+for component in Teamcenter/RightsManagementExtension/*/* artifacts/Teamcenter/RightsManagementExtension/*/* artifacts/DynamicsCRMEnforcer/ artifacts/Embraer/plugins/*/* artifacts/EnoviaEnforcer/EntitlementManager/* artifacts/ExchangeEnforcer/release/* artifacts/IC-DTE/plugins/*/* artifacts/Karma/DocumentControlServer/* artifacts/Karma/RightsManagementServer/* artifacts/SfBServerEnforcer/release/* artifacts/SharePointOnlineEnforcer/release/* artifacts/UTC/BizAuthIntgPlugin/* artifacts/UTC/BizAuthServices/* artifacts/UTC/BizAuthSubjectAttributePlugin/* artifacts/UTC/ConfigManagerApp/* DynamicsCRMEnforcer/ Embraer/LicenseViewer/* Embraer/plugins/* EnoviaEnforcer/EntitlementManager/* ExchangeEnforcer/release/*/* IC-DTE/plugins/*/* SfBServerEnforcer/release/* SharePointOnlineEnforcer/release/* UTC/BizAuthIntgPlugin/* UTC/BizAuthServices/* UTC/BizAuthSubjectAttributePlugin/* UTC/ConfigManagerApp/* WindchillEM/EntitlementManager/* plugins/EndpointsConfig/* plugins/RADHeartbeatPlugin/* plugins/RAPPlugin/* plugins/UAPlugin/*
+do
+  numdirs=`ls &quot;${component}&quot; 2&gt;/dev/null | wc -l`
+  if [ ${numdirs} -ge 15 ]; then
+    dirsiz=`du -sh ${component} | awk &apos;{print $1}&apos;`
+    echo &quot;INFO: Found //nextlabs.com/share/data/build/release_candidate/${component} : ${numdirs} : ${dirsiz}&quot; | sed &apos;s@/@\\@g&apos;
+  fi
+done
+for component in artifacts/*/* [b-zA-Z]*/*
+do
+  [ `echo &quot;${component}&quot; | grep -ic sap` -ne 0 ] &amp;&amp; continue # SAP stuff - no idea whether this needs to be pruned - let&apos;s leave it alone
+  [ `echo &quot;${component}&quot; | grep -c Teamcenter` -ne 0 ] &amp;&amp; continue # TeamCenter directories - we already handled above
+  [ `echo &quot;${component}&quot; | grep -c artifacts/DynamicsCRMEnforcer` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c artifacts/Embraer/plugins` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c artifacts/EnoviaEnforcer/EntitlementManager` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c artifacts/ExchangeEnforcer/release` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c artifacts/IC-DTE/plugins` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c artifacts/Karma/DocumentControlServer` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c artifacts/Karma/RightsManagementServer` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c artifacts/SfBServerEnforcer/release` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c artifacts/SharePointOnlineEnforcer/release` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c artifacts/UTC/BizAuthIntgPlugin` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c artifacts/UTC/BizAuthServices` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c artifacts/UTC/BizAuthSubjectAttributePlugin` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c artifacts/UTC/ConfigManagerApp` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c artifacts/WindchillEM/EntitlementManager` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c DynamicsCRMEnforcer` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c Embraer/LicenseViewer` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c Embraer/plugins` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c EnoviaEnforcer/EntitlementManager` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c ExchangeEnforcer/release` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c IC-DTE/plugins` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c SfBServerEnforcer/release` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c SharePointOnlineEnforcer/release` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c UTC/BizAuthIntgPlugin` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c UTC/BizAuthServices` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c UTC/BizAuthSubjectAttributePlugin` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c UTC/ConfigManagerApp` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c WindchillEM/EntitlementManager` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c plugins/EndpointsConfig` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c plugins/RADHeartbeatPlugin` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c plugins/RAPPlugin` -ne 0 ] &amp;&amp; continue # We already handled these above
+  [ `echo &quot;${component}&quot; | grep -c plugins/UAPlugin` -ne 0 ] &amp;&amp; continue # We already handled these above
+  numdirs=`ls &quot;${component}&quot; 2&gt;/dev/null | wc -l`
+  if [ ${numdirs} -ge 15 ]; then
+    dirsiz=`du -sh ${component} | awk &apos;{print $1}&apos;`
+    echo &quot;INFO: Found //nextlabs.com/share/data/build/release_candidate/${component} : ${numdirs} : ${dirsiz}&quot; | sed &apos;s@/@\\@g&apos;
+  fi
+done
+echo &quot;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~&quot;
+echo
+
+cd ${WORKSPACE}/
+
+## EOF ##</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers>
+    <hudson.plugins.emailext.ExtendedEmailPublisher plugin="email-ext@2.63">
+      <recipientList>lakshmi.krishnan@nextlabs.com, Kavashgar.Manimarpan@nextlabs.com</recipientList>
+      <configuredTriggers>
+        <hudson.plugins.emailext.plugins.trigger.AlwaysTrigger>
+          <email>
+            <subject>$PROJECT_DEFAULT_SUBJECT</subject>
+            <body>$PROJECT_DEFAULT_CONTENT</body>
+            <recipientProviders>
+              <hudson.plugins.emailext.plugins.recipients.ListRecipientProvider/>
+            </recipientProviders>
+            <attachmentsPattern></attachmentsPattern>
+            <attachBuildLog>false</attachBuildLog>
+            <compressBuildLog>false</compressBuildLog>
+            <replyTo>$PROJECT_DEFAULT_REPLYTO</replyTo>
+            <contentType>project</contentType>
+          </email>
+        </hudson.plugins.emailext.plugins.trigger.AlwaysTrigger>
+      </configuredTriggers>
+      <contentType>default</contentType>
+      <defaultSubject>$DEFAULT_SUBJECT</defaultSubject>
+      <defaultContent>${BUILD_URL}
+
+================== BUILD LOG FOLLOWS ==================
+${BUILD_LOG}</defaultContent>
+      <attachmentsPattern></attachmentsPattern>
+      <presendScript>$DEFAULT_PRESEND_SCRIPT</presendScript>
+      <postsendScript>$DEFAULT_POSTSEND_SCRIPT</postsendScript>
+      <attachBuildLog>false</attachBuildLog>
+      <compressBuildLog>false</compressBuildLog>
+      <replyTo>$DEFAULT_REPLYTO</replyTo>
+      <from></from>
+      <saveOutput>false</saveOutput>
+      <disabled>false</disabled>
+    </hudson.plugins.emailext.ExtendedEmailPublisher>
+    <com.chikli.hudson.plugin.naginator.NaginatorPublisher plugin="naginator@1.17.2">
+      <regexpForRerun>cd: can&apos;t cd to /mnt/windowsshares/saba.nextlabs.com/build/pcv</regexpForRerun>
+      <rerunIfUnstable>false</rerunIfUnstable>
+      <rerunMatrixPart>false</rerunMatrixPart>
+      <checkRegexp>true</checkRegexp>
+      <regexpForMatrixStrategy>TestParent</regexpForMatrixStrategy>
+      <delay class="com.chikli.hudson.plugin.naginator.ProgressiveDelay">
+        <increment>5</increment>
+        <max>30</max>
+      </delay>
+      <maxSchedule>5</maxSchedule>
+    </com.chikli.hudson.plugin.naginator.NaginatorPublisher>
+  </publishers>
+  <buildWrappers/>
+</project>

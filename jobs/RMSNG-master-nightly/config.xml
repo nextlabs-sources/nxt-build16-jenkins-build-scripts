@@ -1,0 +1,440 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description>Creates RMSNG &amp; RMJavaSDK installers based on last-successful-build reported by &lt;a target=&quot;_blank&quot; href=&quot;http://nxt-build16.nextlabs.com:9031/job/RMSNG-master-ci&quot;&gt;RMSNG-master-ci&lt;/a&gt; build</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.security.AuthorizationMatrixProperty>
+      <inheritanceStrategy class="org.jenkinsci.plugins.matrixauth.inheritance.InheritParentStrategy"/>
+      <permission>hudson.model.Item.Discover:mxu</permission>
+      <permission>hudson.model.Item.Read:mxu</permission>
+      <permission>hudson.model.Item.Workspace:mxu</permission>
+    </hudson.security.AuthorizationMatrixProperty>
+    <jenkins.model.BuildDiscarderProperty>
+      <strategy class="hudson.tasks.LogRotator">
+        <daysToKeep>-1</daysToKeep>
+        <numToKeep>15</numToKeep>
+        <artifactDaysToKeep>-1</artifactDaysToKeep>
+        <artifactNumToKeep>-1</artifactNumToKeep>
+      </strategy>
+    </jenkins.model.BuildDiscarderProperty>
+    <hudson.plugins.disk__usage.DiskUsageProperty plugin="disk-usage@0.28"/>
+    <com.chikli.hudson.plugin.naginator.NaginatorOptOutProperty plugin="naginator@1.17.2">
+      <optOut>false</optOut>
+    </com.chikli.hudson.plugin.naginator.NaginatorOptOutProperty>
+  </properties>
+  <scm class="hudson.scm.NullSCM"/>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers/>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>set +x
+
+mkdir -p ~/.gradle
+[ `grep -c -e &quot;org.gradle.daemon=false&quot; ~/.gradle/gradle.properties` -eq 0 ] &amp;&amp; echo &quot;org.gradle.daemon=false&quot; &gt;&gt; ~/.gradle/gradle.properties
+
+export NLEXTERNALDIR=/var/lib/jenkins/workspace/source_external
+export NLEXTERNALDIR2=/var/lib/jenkins/workspace/source_main_external/
+
+BUILD_MANIFEST_FILE=${WORKSPACE}/build.manifest
+
+cd ${WORKSPACE}/rmsng
+prevnightlybuild_GITSHA=$(git log -1 --format=&quot;%h&quot;) # Obtain prev nightly build&apos;s GITSHA for sending consolidated diff in email
+
+cd ${WORKSPACE}
+rm -rf ${WORKSPACE}/rmsng
+git clone git@bitbucket.org:nxtlbs-devops/rmsng.git
+
+# Obtain the SHA of the lastSuccessfulBuild of the RMSNG-CI build
+# rm -f ${WORKSPACE}/RMSNG-master-ci_lastSuccessfulBuild.xml
+# wget \
+#     --auth-no-challenge \
+#     --http-user=build-op \
+#     --http-password=def1b869316274116ed91cbbbe656332 \
+#     --secure-protocol=TLSv1 \
+#     ${JENKINS_URL}/job/RMSNG-master-ci/lastSuccessfulBuild/api/xml \
+#     -O \
+#     ${WORKSPACE}/RMSNG-master-ci_lastSuccessfulBuild.xml
+# lastSuccessfulCIBuild_GitSHA=$(perl /var/lib/jenkins/workspace/getLastSuccessfulGitSHA.pl ${WORKSPACE}/RMSNG-master-ci_lastSuccessfulBuild.xml)
+cat &gt;${WORKSPACE}/getSHA.py &lt;&lt;EOF
+import sys
+import xml.etree.ElementTree as ET
+
+freeStyleBuild = ET.parse(sys.stdin)
+
+for sha1 in freeStyleBuild.findall(&quot;.//*[@_class=&apos;hudson.plugins.git.util.BuildData&apos;]/lastBuiltRevision/SHA1&quot;):
+    print sha1.text
+EOF
+lastSuccessfulCIBuild_GitSHA=$(curl -fsSL http://build-op:05ecf668481e4171314621682ffb7761@nxt-build16.nextlabs.com:9031/job/RMSNG-master-ci/lastSuccessfulBuild/api/xml | python ${WORKSPACE}/getSHA.py)
+
+echo &quot;INFO: lastSuccessfulCIBuild_GitSHA: ${lastSuccessfulCIBuild_GitSHA}&quot;
+
+cd ${WORKSPACE}/rmsng
+git checkout ${lastSuccessfulCIBuild_GitSHA}
+
+lastSuccessfulCIBuild_GitSHA_short=$(echo ${lastSuccessfulCIBuild_GitSHA} | cut -c1-7)
+
+# Write information about what&apos;s changed since last nightly-build
+rm -f ${WORKSPACE}/changes-since-last-successful-build.txt
+echo &quot;################################################################################&quot; &gt; ${WORKSPACE}/changes-since-last-successful-build.txt
+echo &quot;Changes since last successful nightly build&quot; &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build.txt
+echo &quot;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~&quot; &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build.txt
+echo &quot;Last successful nightly build GitSHA: ${prevnightlybuild_GITSHA}&quot; &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build.txt
+echo &quot;                Current build GitSHA: ${lastSuccessfulCIBuild_GitSHA_short}&quot; &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build.txt
+echo &quot;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~&quot; &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build.txt
+git log --oneline --date=short --graph --format=format:&apos;%h - [%ad] - %an - %-s%w(0,0,9)%+d&apos; ${prevnightlybuild_GITSHA}..${lastSuccessfulCIBuild_GitSHA_short} &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build.txt
+echo &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build.txt
+echo &quot;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~&quot; &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build.txt
+
+# Write information about what&apos;s changed since last nightly-build
+rm -f ${WORKSPACE}/changes-since-last-successful-build-without-merges.txt
+echo &quot;################################################################################&quot; &gt; ${WORKSPACE}/changes-since-last-successful-build-without-merges.txt
+echo &quot;Changes since last successful nightly build&quot; &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build-without-merges.txt
+echo &quot;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~&quot; &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build-without-merges.txt
+echo &quot;Last successful nightly build GitSHA: ${prevnightlybuild_GITSHA}&quot; &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build-without-merges.txt
+echo &quot;                Current build GitSHA: ${lastSuccessfulCIBuild_GitSHA_short}&quot; &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build-without-merges.txt
+echo &quot;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~&quot; &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build-without-merges.txt
+git log --oneline --date=short --format=format:&apos;%h - [%ad] - %an - %-s%w(0,0,9)%+d&apos; ${prevnightlybuild_GITSHA}..${lastSuccessfulCIBuild_GitSHA_short} --no-merges &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build-without-merges.txt
+echo &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build-without-merges.txt
+echo &quot;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~&quot; &gt;&gt; ${WORKSPACE}/changes-since-last-successful-build-without-merges.txt
+
+echo
+echo &quot;INFO: ################################################################################&quot;
+echo &quot;INFO: Changes since last successful nightly build (excluding merged-to-master commits)&quot;
+echo
+git log --oneline --date=short --format=format:&apos;%h - [%ad] - %an - %-s%w(0,0,9)%+d&apos; ${prevnightlybuild_GITSHA}..${lastSuccessfulCIBuild_GitSHA_short} --no-merges
+echo
+echo &quot;INFO: ################################################################################&quot;
+echo
+
+################################################################################
+############################# LET&apos;S DO A BUILD ###############################
+################################################################################
+
+export VERSION_RMS_STR=$(awk -F&apos;=&apos; &apos;/^version=/{print $2}&apos; ${WORKSPACE}/rmsng/build.properties)
+export VERSION_RMS_STR_MAJOR=$(echo ${VERSION_RMS_STR} | cut -d. -f1)
+export VERSION_RMS_STR_MINOR=$(echo ${VERSION_RMS_STR} | cut -d. -f2)
+export BUILD_DATE_LONG=$(date +&quot;%Y%m%d%H%M&quot;)
+
+export RMSNG_BUILD_NUMBER=$(printf %04d ${BUILD_NUMBER})
+echo &quot;INFO: RMSNG_BUILD_NUMBER: ${RMSNG_BUILD_NUMBER}&quot;
+export RMSNG_PACKAGE_NAME=RMS-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.zip
+export RMJAVASDK_NG_PACKAGE_NAME=RMSERVERSDK-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}-build.zip
+
+# Unpack all 3rd-party dependencies
+./gradlew unzip
+
+# Set version in build.config files
+./gradlew setVersion setRelease -p shared 
+
+# build rmjavasdk-ng and publish the artifact
+./gradlew clean publish -p rmjavasdk-ng
+
+# Create the buildoutput folder
+mkdir -p ${WORKSPACE}/rmsng/buildoutput
+
+# copy to buildoutput
+cp ${WORKSPACE}/rmsng/rmjavasdk-ng/build/distributions/rmjavasdk-ng.zip ${WORKSPACE}/rmsng/buildoutput/${RMJAVASDK_NG_PACKAGE_NAME}
+cp ${WORKSPACE}/rmsng/rmjavasdk-ng/build/libs/proguard.map ${WORKSPACE}/rmsng/buildoutput/proguard.map
+
+# build wars
+./gradlew clean war
+
+# copy to buildoutput folder 
+cp ${WORKSPACE}/rmsng/rms/server/build/libs/rms.war ${WORKSPACE}/rmsng/buildoutput/
+cp ${WORKSPACE}/rmsng/router/server/build/libs/router.war ${WORKSPACE}/rmsng/buildoutput/
+cp ${WORKSPACE}/rmsng/viewer/build/libs/viewer.war ${WORKSPACE}/rmsng/buildoutput/
+
+# build viewer zip files
+./gradlew packageViewers -p viewer
+
+##
+# Copy back viewer.war to viewer-libs folder since packageViewers command above
+# does &apos;viewer clean&apos; that deletes the viewer.war, which is needed at later stage
+# for docker build
+#
+# &gt;&gt;&gt;&gt; TODO &lt;&lt;&lt;&lt;
+# Work with DEV Team to see if this can be addressed differently
+# &gt;&gt;&gt;&gt; TODO &lt;&lt;&lt;&lt;
+##
+mkdir -p ${WORKSPACE}/rmsng/viewer/build/libs &amp;&amp; cp ${WORKSPACE}/rmsng/buildoutput/viewer.war ${WORKSPACE}/rmsng/viewer/build/libs/viewer.war
+
+# copy to buildoutput
+cp ${WORKSPACE}/rmsng/viewer/build/distributions/*.zip ${WORKSPACE}/rmsng/buildoutput/
+
+# Now create a zip of the war files we need
+cd ${WORKSPACE}/rmsng/
+zip -j ${WORKSPACE}/rmsng/buildoutput/${RMSNG_PACKAGE_NAME} \
+    buildoutput/router.war \
+    buildoutput/rms.war \
+    buildoutput/viewer.war
+
+################################################################################
+######################### LET&apos;S DO SOME DOCKER BUILDS ##########################
+################################################################################
+
+# Modify Dockerfiles to depend on version-number based images, instead of LATEST
+cd ${WORKSPACE}/rmsng
+sed -i -e &quot;s@:LATEST@:${VERSION_RMS_STR}.${RMSNG_BUILD_NUMBER}@&quot; \
+    docker/compose/docker-compose.yml \
+    docker/rms/Dockerfile \
+    docker/router/Dockerfile \
+    docker/viewer/Dockerfile
+cp ${WORKSPACE}/rmsng/docker/compose/docker-compose.yml ${WORKSPACE}/rmsng/buildoutput/docker-compose-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.yml
+
+# Setup files that will be required for base image creation
+cd ${WORKSPACE}/rmsng
+mkdir -p xlib/jre_1.8.0_172 \
+         xlib/tomcat_8.5.35 \
+         xlib/unlimitedjcepolicyjdk8
+cd ${NLEXTERNALDIR2}/j2sdk/jre1.8.0_172/linux/x64 ; tar cf - . | ( cd ${WORKSPACE}/rmsng/xlib/jre_1.8.0_172 ; tar xf - )
+cd ${NLEXTERNALDIR2}/j2sdk/UnlimitedJCEPolicyJDK8 ; tar cf - . | ( cd ${WORKSPACE}/rmsng/xlib/unlimitedjcepolicyjdk8 ; tar xf - )
+cd ${NLEXTERNALDIR2}/tomcat/apache-tomcat-8.5.35  ; tar cf - . | ( cd ${WORKSPACE}/rmsng/xlib/tomcat_8.5.35 ; tar xf - )
+
+##
+# Pre-copy UnlimitedJCEPolicyJDK8 jars into the JRE lib folder
+# We are removing these lines from Dockerfile and doing the copy
+# at build-job time itself
+##
+cd ${WORKSPACE}/rmsng
+cp -f ${WORKSPACE}/rmsng/xlib/unlimitedjcepolicyjdk8/local_policy.jar \
+      ${WORKSPACE}/rmsng/xlib/unlimitedjcepolicyjdk8/US_export_policy.jar \
+      ${WORKSPACE}/rmsng/xlib/jre_1.8.0_172/lib/security/
+
+##
+# Remove unwanted Tomcat webapps
+##
+cd ${WORKSPACE}/rmsng/xlib/tomcat_8.5.35/webapps ; rm -rf docs examples host-manager manager
+
+# Set permissions of binaries and libraries and scripts in JRE and Tomcat folders
+find ${WORKSPACE}/rmsng/xlib/jre_1.8.0_172 ${WORKSPACE}/rmsng/xlib/tomcat_8.5.35 -type f \( -name &apos;*.so&apos; -o -name &apos;*.sh&apos; \) -exec chmod ugo+x {} \;
+chmod ugo+x ${WORKSPACE}/rmsng/xlib/jre_1.8.0_172/bin/*
+
+######
+# Pull docker images that we need
+#
+# These are specified in the docker-compose yml file
+# infinispan: image: jboss/infinispan-server:9.4.0.Final
+#   rabbitmq: image: rabbitmq:3-management
+######
+INFINISPAN_DOCKER_TAG=$(awk -F&apos;: &apos; &apos;/image: jboss\/infinispan-server/{print $2}&apos; ${WORKSPACE}/rmsng/docker/compose/docker-compose.yml)
+echo ; echo &quot;INFO: Pulling ${INFINISPAN_DOCKER_TAG} ...&quot;
+docker pull ${INFINISPAN_DOCKER_TAG}
+
+RABBITMQ_DOCKER_TAG=$(awk -F&apos;: &apos; &apos;/image: rabbitmq/{print $2}&apos; ${WORKSPACE}/rmsng/docker/compose/docker-compose.yml)
+echo ; echo &quot;INFO: Pulling ${RABBITMQ_DOCKER_TAG} ...&quot;
+docker pull ${RABBITMQ_DOCKER_TAG}
+
+cd ${WORKSPACE}/rmsng
+
+# Build the docker images
+cd ${WORKSPACE}/rmsng
+docker build --rm -t skydrm-base:${VERSION_RMS_STR}.${RMSNG_BUILD_NUMBER}   -f docker/base/Dockerfile   .
+docker build --rm -t skydrm-db:${VERSION_RMS_STR}.${RMSNG_BUILD_NUMBER}     -f docker/db/Dockerfile     .
+docker build --rm -t skydrm-rms:${VERSION_RMS_STR}.${RMSNG_BUILD_NUMBER}    -f docker/rms/Dockerfile    .
+docker build --rm -t skydrm-router:${VERSION_RMS_STR}.${RMSNG_BUILD_NUMBER} -f docker/router/Dockerfile .
+docker build --rm -t skydrm-viewer:${VERSION_RMS_STR}.${RMSNG_BUILD_NUMBER} -f docker/viewer/Dockerfile .
+
+# Export the docker images for downloading from BODA
+cd ${WORKSPACE}/rmsng
+docker save -o ${WORKSPACE}/rmsng/buildoutput/RightsManagementServer-InfiniSpan-DockerImage-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.tar ${INFINISPAN_DOCKER_TAG}
+docker save -o ${WORKSPACE}/rmsng/buildoutput/RightsManagementServer-RabbitMQ-DockerImage-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.tar ${RABBITMQ_DOCKER_TAG}
+docker save -o ${WORKSPACE}/rmsng/buildoutput/RightsManagementServer-DB-DockerImage-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.tar skydrm-db:${VERSION_RMS_STR}.${RMSNG_BUILD_NUMBER}
+docker save -o ${WORKSPACE}/rmsng/buildoutput/RightsManagementServer-RMS-DockerImage-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.tar skydrm-rms:${VERSION_RMS_STR}.${RMSNG_BUILD_NUMBER}
+docker save -o ${WORKSPACE}/rmsng/buildoutput/RightsManagementServer-Router-DockerImage-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.tar skydrm-router:${VERSION_RMS_STR}.${RMSNG_BUILD_NUMBER}
+docker save -o ${WORKSPACE}/rmsng/buildoutput/RightsManagementServer-Viewer-DockerImage-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.tar skydrm-viewer:${VERSION_RMS_STR}.${RMSNG_BUILD_NUMBER}
+
+## Docker Images Cleanup ##
+docker rmi $(docker images --filter &quot;dangling=true&quot; -q --no-trunc) 1&gt;/dev/null 2&gt;&amp;1 || true
+for component in skydrm-base skydrm-db skydrm-rms skydrm-router skydrm-viewer
+do
+    # Obtain list of all older-than-last-5 image tags
+    docker image ls -a --format &quot;{{.Tag}}&quot; ${component} | grep -v LATEST | sort -b -t. -k1,1n -k2,2n -k3,3n | head -n -5 | while read tagname
+    do
+        echo docker image rm -f ${component}:${tagname}
+        docker image rm -f ${component}:${tagname}
+    done
+done
+
+# Create docker setup &quot;installer&quot;
+cd ${WORKSPACE}/rmsng ; mkdir buildoutput/SkyDRM-setup
+cp buildoutput/docker-compose-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.yml buildoutput/SkyDRM-setup/
+cp -r docker/setup buildoutput/SkyDRM-setup/
+# Copy ControlCenter jars required for encryption/decryption
+mkdir -p buildoutput/SkyDRM-setup/setup/lib ; cp lib/platform/crypt.jar lib/platform/common-framework.jar buildoutput/SkyDRM-setup/setup/lib
+sed -i &quot;s@docker-compose.yml@docker-compose-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.yml@&quot; buildoutput/SkyDRM-setup/setup/setup.sh
+cd buildoutput/SkyDRM-setup/ ; zip -r ${WORKSPACE}/rmsng/buildoutput/SkyDRM-setup.zip .
+
+################################################################################
+############################# PUBLISH TO BODA PART #############################
+################################################################################
+# Push the zip to BODA
+export VERSION_BUILD_SHORT=${BUILD_NUMBER}
+export REPOSITORY_ROOT=/mnt/windowsshares/saba.nextlabs.com/build/release_candidate
+export PUBLISH_BODA_SC_DIR=${REPOSITORY_ROOT}/SecureCollaboration/${VERSION_RMS_STR}/${VERSION_BUILD_SHORT}
+export PUBLISH_BODA_SC_ARTIFACT_DIR=${REPOSITORY_ROOT}/artifacts/SecureCollaboration/${VERSION_RMS_STR}/${VERSION_BUILD_SHORT}
+export LOG_FILE=${WORKSPACE}/buildRelease.log
+
+export PUBLISH_TO_BODA=1
+
+# Create BODA dirs that must be present
+mkdir -p ${PUBLISH_BODA_SC_DIR}
+mkdir -p ${PUBLISH_BODA_SC_ARTIFACT_DIR}
+
+(
+set -x
+
+# Extract Git and Jenkins info from Workspace (works only if running on Jenkins)
+if [ -f ${WORKSPACE}/../config.xml ]; then
+    ${WORKSPACE}/rmsng/scripts/getGitWorkspaceInfo.pl ${WORKSPACE}/../config.xml
+fi
+
+# Publish to BODA only if PUBLISH_TO_BODA environment variable is set (set in Jenkins build process)
+if [ &quot;X${PUBLISH_TO_BODA}&quot; = &quot;XYes&quot; -o &quot;X${PUBLISH_TO_BODA}&quot; = &quot;Xyes&quot; -o &quot;X${PUBLISH_TO_BODA}&quot; = &quot;XYES&quot; -o &quot;X${PUBLISH_TO_BODA}&quot; = &quot;X1&quot; ]
+then
+    cd ${WORKSPACE}/rmsng/buildoutput/
+    cp ${RMSNG_PACKAGE_NAME} ${PUBLISH_BODA_SC_DIR}/
+
+    # Rename the Viewer packages to the RMS package format
+    cd ${WORKSPACE}/rmsng/buildoutput/
+    mv RightsManagementServer-CADViewer-${BUILD_NUMBER}.zip RightsManagementServer-CADViewer-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.zip
+    mv RightsManagementServer-DocViewer-${BUILD_NUMBER}.zip RightsManagementServer-DocViewer-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.zip
+    mv RightsManagementServer-SAPViewer-${BUILD_NUMBER}.zip RightsManagementServer-SAPViewer-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.zip
+
+    # Copy the RMSNG &amp; Viewer packages to BODA
+    cd ${WORKSPACE}/rmsng/buildoutput/
+    VIEWERPKGLIST=$(echo RightsManagementServer-*Viewer-*.zip)
+    cp RightsManagementServer-*Viewer-*.zip ${PUBLISH_BODA_SC_DIR}/
+    if [ -f &quot;${PUBLISH_BODA_SC_DIR}/${RMSNG_PACKAGE_NAME}&quot; ] ; then
+        set +x
+        # Write information to build.manifest file
+        echo &quot;[BUILD MANIFEST]   Product Name       : Secure Collaboration&quot;
+        echo &quot;[BUILD MANIFEST]   Installer Location : ${PUBLISH_BODA_SC_DIR}&quot;
+        echo &quot;[BUILD MANIFEST]   Installer Package  : ${RMSNG_PACKAGE_NAME} ${VIEWERPKGLIST}&quot;
+        set -x
+    fi
+
+    # Copy the RMJavaSDK-NG pkg to BODA
+    cd ${WORKSPACE}/rmsng/buildoutput/
+    cp ${RMJAVASDK_NG_PACKAGE_NAME} ${PUBLISH_BODA_SC_DIR}/
+    cp proguard.map ${PUBLISH_BODA_SC_DIR}/
+    if [ -f &quot;${PUBLISH_BODA_SC_DIR}/${RMJAVASDK_NG_PACKAGE_NAME}&quot; -a -f &quot;${PUBLISH_BODA_SC_DIR}/proguard.map&quot; ] ; then
+        set +x
+        # Write information to build.manifest file
+        echo &quot;[BUILD MANIFEST]   RMJavaSDK Package  : ${RMJAVASDK_NG_PACKAGE_NAME} proguard.map&quot;
+        set -x
+    fi
+
+    # Copy the Docker images to BODA
+    cd ${WORKSPACE}/rmsng/buildoutput/
+    DOCKER_FILES_LIST=$(echo RightsManagementServer-*-DockerImage-*.tar)
+    cp ${WORKSPACE}/rmsng/buildoutput/RightsManagementServer-InfiniSpan-DockerImage-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.tar ${PUBLISH_BODA_SC_DIR}/
+    cp ${WORKSPACE}/rmsng/buildoutput/RightsManagementServer-RabbitMQ-DockerImage-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.tar ${PUBLISH_BODA_SC_DIR}/
+    cp ${WORKSPACE}/rmsng/buildoutput/RightsManagementServer-DB-DockerImage-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.tar ${PUBLISH_BODA_SC_DIR}/
+    cp ${WORKSPACE}/rmsng/buildoutput/RightsManagementServer-RMS-DockerImage-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.tar ${PUBLISH_BODA_SC_DIR}/
+    cp ${WORKSPACE}/rmsng/buildoutput/RightsManagementServer-Router-DockerImage-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.tar ${PUBLISH_BODA_SC_DIR}/
+    cp ${WORKSPACE}/rmsng/buildoutput/RightsManagementServer-Viewer-DockerImage-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.tar ${PUBLISH_BODA_SC_DIR}/
+    cp ${WORKSPACE}/rmsng/buildoutput/docker-compose-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.yml ${PUBLISH_BODA_SC_DIR}/docker-compose-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.yml
+    cp ${WORKSPACE}/rmsng/buildoutput/SkyDRM-setup.zip ${PUBLISH_BODA_SC_DIR}/SkyDRM-setup-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.zip
+    if [ -f &quot;${PUBLISH_BODA_SC_DIR}/RightsManagementServer-InfiniSpan-DockerImage-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.tar&quot; -a \
+         -f &quot;${PUBLISH_BODA_SC_DIR}/RightsManagementServer-RabbitMQ-DockerImage-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.tar&quot; -a \
+         -f &quot;${PUBLISH_BODA_SC_DIR}/RightsManagementServer-DB-DockerImage-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.tar&quot; -a \
+         -f &quot;${PUBLISH_BODA_SC_DIR}/RightsManagementServer-RMS-DockerImage-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.tar&quot; -a \
+         -f &quot;${PUBLISH_BODA_SC_DIR}/RightsManagementServer-Router-DockerImage-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.tar&quot; -a \
+         -f &quot;${PUBLISH_BODA_SC_DIR}/RightsManagementServer-Viewer-DockerImage-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.tar&quot; -a \
+         -f &quot;${PUBLISH_BODA_SC_DIR}/SkyDRM-setup-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.zip&quot; -a \
+         -f &quot;${PUBLISH_BODA_SC_DIR}/docker-compose-${VERSION_RMS_STR}-${RMSNG_BUILD_NUMBER}-${BUILD_DATE_LONG}.yml&quot; ] ; then
+        set +x
+        # Write information to build.manifest file
+        echo &quot;[BUILD MANIFEST]   Docker Images      : ${DOCKER_FILES_LIST}&quot;
+        set -x
+    fi
+fi
+set +x
+) 2&gt;&amp;1 | tee $LOG_FILE
+
+# Create and publish build manifest
+perl ${WORKSPACE}/rmsng/scripts/createBuildManifest.pl $LOG_FILE &gt; $BUILD_MANIFEST_FILE || exit $?
+
+# Publish to BODA only if PUBLISH_TO_BODA environment variable is set (set in Jenkins build process)
+if [ &quot;X${PUBLISH_TO_BODA}&quot; = &quot;XYes&quot; -o &quot;X${PUBLISH_TO_BODA}&quot; = &quot;Xyes&quot; -o &quot;X${PUBLISH_TO_BODA}&quot; = &quot;XYES&quot; -o &quot;X${PUBLISH_TO_BODA}&quot; = &quot;X1&quot; ]
+then
+    cp ${BUILD_MANIFEST_FILE} ${PUBLISH_BODA_SC_ARTIFACT_DIR}/
+    cp ${WORKSPACE}/changes-since-last-successful-build.txt ${WORKSPACE}/changes-since-last-successful-build-without-merges.txt ${PUBLISH_BODA_SC_ARTIFACT_DIR}/ # Push what&apos;s new content to artifacts dir
+fi
+
+echo
+echo
+echo &quot;####################### BUILD MANIFEST CONTENTS ########################&quot;
+cat ${BUILD_MANIFEST_FILE}
+echo &quot;########################################################################&quot;
+
+################################################################################
+########################### END PUBLISH TO BODA PART ###########################
+################################################################################
+
+## EOF ##</command>
+    </hudson.tasks.Shell>
+    <hudson.plugins.descriptionsetter.DescriptionSetterBuilder plugin="description-setter@1.10">
+      <regexp>_(GitSHA: \w{7})</regexp>
+    </hudson.plugins.descriptionsetter.DescriptionSetterBuilder>
+    <hudson.plugins.descriptionsetter.DescriptionSetterBuilder plugin="description-setter@1.10">
+      <regexp>^Setting version to ([0-9.]+)$</regexp>
+      <description>Version: \1</description>
+    </hudson.plugins.descriptionsetter.DescriptionSetterBuilder>
+  </builders>
+  <publishers>
+    <hudson.tasks.ArtifactArchiver>
+      <artifacts>rmsng/buildoutput/RMS*.zip, rmsng/buildoutput/RMJavaSDK-*.zip, rmsng/buildoutput/proguard.map, changes-since-last-successful-build.txt, changes-since-last-successful-build-without-merges.txt</artifacts>
+      <allowEmptyArchive>false</allowEmptyArchive>
+      <onlyIfSuccessful>false</onlyIfSuccessful>
+      <fingerprint>false</fingerprint>
+      <defaultExcludes>true</defaultExcludes>
+      <caseSensitive>true</caseSensitive>
+    </hudson.tasks.ArtifactArchiver>
+    <hudson.plugins.emailext.ExtendedEmailPublisher plugin="email-ext@2.63">
+      <recipientList>$DEFAULT_RECIPIENTS, sc-scrumteam@nextlabs.com</recipientList>
+      <configuredTriggers>
+        <hudson.plugins.emailext.plugins.trigger.AlwaysTrigger>
+          <email>
+            <subject>$PROJECT_DEFAULT_SUBJECT</subject>
+            <body>$PROJECT_DEFAULT_CONTENT</body>
+            <recipientProviders>
+              <hudson.plugins.emailext.plugins.recipients.ListRecipientProvider/>
+            </recipientProviders>
+            <attachmentsPattern></attachmentsPattern>
+            <attachBuildLog>false</attachBuildLog>
+            <compressBuildLog>false</compressBuildLog>
+            <replyTo>$PROJECT_DEFAULT_REPLYTO</replyTo>
+            <contentType>project</contentType>
+          </email>
+        </hudson.plugins.emailext.plugins.trigger.AlwaysTrigger>
+      </configuredTriggers>
+      <contentType>default</contentType>
+      <defaultSubject>$DEFAULT_SUBJECT</defaultSubject>
+      <defaultContent>$BUILD_STATUS: $PROJECT_NAME - Build #$BUILD_NUMBER:
+
+View the build output at: $BUILD_URL/console.
+
+---------
+Changes:
+Check attachment &apos;changes-since-last-successful-build-without-merges.txt&apos; for changes in this build since last successful build</defaultContent>
+      <attachmentsPattern>changes-since-last-successful-build-without-merges.txt</attachmentsPattern>
+      <presendScript>$DEFAULT_PRESEND_SCRIPT</presendScript>
+      <postsendScript>$DEFAULT_POSTSEND_SCRIPT</postsendScript>
+      <attachBuildLog>false</attachBuildLog>
+      <compressBuildLog>false</compressBuildLog>
+      <replyTo>$DEFAULT_REPLYTO</replyTo>
+      <from></from>
+      <saveOutput>false</saveOutput>
+      <disabled>false</disabled>
+    </hudson.plugins.emailext.ExtendedEmailPublisher>
+  </publishers>
+  <buildWrappers>
+    <hudson.plugins.timestamper.TimestamperBuildWrapper plugin="timestamper@1.8.10"/>
+  </buildWrappers>
+</project>
